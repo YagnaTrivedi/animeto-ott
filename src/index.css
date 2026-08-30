@@ -1,0 +1,151 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: #0a0a0a;
+    --surface: #171717;
+    --surface-container-lowest: #000000;
+    --surface-container-low: #121212;
+    --surface-container: #171717;
+    --surface-container-high: #212121;
+    --surface-container-highest: #2b2b2b;
+    --on-surface: #ffffff;
+    --on-surface-variant: #a3a3a3;
+    --primary: #6366f1;
+    --primary-container: #4f46e5;
+    --on-primary: #ffffff;
+    --secondary: #10b981;
+    --secondary-container: #059669;
+    --tertiary: #f59e0b;
+    --outline: #525252;
+    --outline-variant: #262626;
+    --error: #ef4444;
+  }
+
+  body {
+    background-color: #0a0a0a;
+    color: #ffffff;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+.bento-card {
+  background-color: #171717;
+  border: 1px solid #262626;
+  border-radius: 1.5rem; /* 24px rounded-3xl */
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bento-card:hover {
+  border-color: #404040;
+}
+
+.bento-card-interactive {
+  background-color: #171717;
+  border: 1px solid #262626;
+  border-radius: 1.5rem;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bento-card-interactive:hover {
+  border-color: #6366f1;
+  box-shadow: 0 0 25px rgba(99, 102, 241, 0.15);
+  transform: translateY(-2px);
+}
+
+.bento-glass {
+  background: rgba(23, 23, 23, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel {
+  background: rgba(23, 23, 23, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid #262626;
+}
+
+.neon-glow {
+  box-shadow: 0 0 25px rgba(99, 102, 241, 0.2);
+}
+
+.glow-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glow-hover:hover {
+  border-color: #6366f1;
+  box-shadow: 0 0 25px rgba(99, 102, 241, 0.2);
+  transform: translateY(-2px);
+}
+
+.gradient-btn {
+  background: #ffffff;
+  color: #000000;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.gradient-btn:hover {
+  background: #e5e5e5;
+}
+
+.indigo-btn {
+  background: #6366f1;
+  color: #ffffff;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.indigo-btn:hover {
+  background: #4f46e5;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+}
+
+.hide-scrollbar::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar,
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+/* Custom Video Progress range */
+input[type="range"].progress-bar {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"].progress-bar::-webkit-slider-runnable-track {
+  height: 6px;
+  background: #262626;
+  border-radius: 9999px;
+}
+
+input[type="range"].progress-bar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 14px;
+  width: 14px;
+  background-color: #6366f1;
+  border-radius: 50%;
+  margin-top: -4px;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.8);
+  transition: transform 0.1s ease;
+}
+
+input[type="range"].progress-bar::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+}
+

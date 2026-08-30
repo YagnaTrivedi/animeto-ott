@@ -1,0 +1,6 @@
+{
+  "name": "Animeto",
+  "description": "A premium cinematic anime streaming application with discovery, catalog details, custom video player, interactive library, and watchlist.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
