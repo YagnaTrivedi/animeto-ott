@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Anime, Episode, NavScreen, WatchHistoryItem } from './types';
 import { INITIAL_ANIME_LIST, INITIAL_CONTINUE_WATCHING } from './data/animeData';
+import { fetchAllAnimeFromSupabase, FetchAnimeResult } from './services/animeService';
+import { isSupabaseConfigured } from './lib/supabase';
 import { TopHeader } from './components/TopHeader';
 import { BottomNavBar } from './components/BottomNavBar';
 import { HomeScreen } from './components/HomeScreen';
@@ -14,10 +16,13 @@ import { Toast } from './components/Toast';
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<NavScreen>('home');
   const [previousScreen, setPreviousScreen] = useState<NavScreen>('home');
-  const [animeList] = useState<Anime[]>(INITIAL_ANIME_LIST);
+  const [animeList, setAnimeList] = useState<Anime[]>(INITIAL_ANIME_LIST);
   const [selectedAnime, setSelectedAnime] = useState<Anime | null>(INITIAL_ANIME_LIST[0]);
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | undefined>(undefined);
+  const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1);
   const [selectedGenreFilter, setSelectedGenreFilter] = useState<string>('All');
+  const [isLoadingData, setIsLoadingData] = useState<boolean>(false);
+  const [dataFetchInfo, setDataFetchInfo] = useState<FetchAnimeResult | null>(null);
   
   const [libraryIds, setLibraryIds] = useState<Set<string>>(
     new Set(['attack-on-titan', 'demon-slayer', 'solo-leveling'])
@@ -37,6 +42,37 @@ export default function App() {
     }, 2800);
   };
 
+  const loadAnimeData = useCallback(async (notifyOnComplete = false) => {
+    setIsLoadingData(true);
+    try {
+      const result = await fetchAllAnimeFromSupabase();
+      setDataFetchInfo(result);
+      if (result.animeList && result.animeList.length > 0) {
+        setAnimeList(result.animeList);
+        setSelectedAnime((prev) => {
+          if (!prev) return result.animeList[0];
+          const found = result.animeList.find((a) => a.id === prev.id);
+          return found || result.animeList[0];
+        });
+      }
+      if (notifyOnComplete) {
+        if (!result.isUsingFallback) {
+          showToast(`Synced ${result.count} anime from Supabase`);
+        } else if (isSupabaseConfigured()) {
+          showToast('Supabase table is empty, showing fallback catalog');
+        }
+      }
+    } catch (err: any) {
+      console.error('Data load error:', err);
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAnimeData(false);
+  }, [loadAnimeData]);
+
   const handleNavigate = (screen: NavScreen) => {
     if (screen !== currentScreen) {
       setPreviousScreen(currentScreen);
@@ -45,8 +81,9 @@ export default function App() {
     }
   };
 
-  const handleSelectAnime = (anime: Anime) => {
+  const handleSelectAnime = (anime: Anime, seasonNumber?: number) => {
     setSelectedAnime(anime);
+    setSelectedSeasonNumber(seasonNumber || anime.seasons[0]?.seasonNumber || 1);
     setPreviousScreen(currentScreen);
     setCurrentScreen('detail');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -60,8 +97,21 @@ export default function App() {
       anime.seasons[0]?.episodes[0];
 
     setSelectedEpisode(targetEpisode);
+    if (targetEpisode?.seasonNumber) {
+      setSelectedSeasonNumber(targetEpisode.seasonNumber);
+    }
     setPreviousScreen(currentScreen);
     setCurrentScreen('player');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePlayerBack = (seasonNumber?: number) => {
+    if (seasonNumber) {
+      setSelectedSeasonNumber(seasonNumber);
+    } else if (selectedEpisode?.seasonNumber) {
+      setSelectedSeasonNumber(selectedEpisode.seasonNumber);
+    }
+    setCurrentScreen('detail');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -98,9 +148,12 @@ export default function App() {
 
   const handleBack = () => {
     if (currentScreen === 'player') {
+      if (selectedEpisode?.seasonNumber) {
+        setSelectedSeasonNumber(selectedEpisode.seasonNumber);
+      }
       setCurrentScreen(selectedAnime ? 'detail' : 'home');
     } else if (currentScreen === 'detail') {
-      setCurrentScreen(previousScreen === 'detail' ? 'home' : previousScreen);
+      setCurrentScreen(previousScreen === 'detail' || previousScreen === 'player' ? 'home' : previousScreen);
     } else {
       setCurrentScreen('home');
     }
@@ -153,12 +206,14 @@ export default function App() {
         {currentScreen === 'detail' && selectedAnime && (
           <AnimeDetailScreen
             anime={selectedAnime}
+            initialSeasonNumber={selectedSeasonNumber}
             isInLibrary={libraryIds.has(selectedAnime.id)}
             isInWatchlist={watchlistIds.has(selectedAnime.id)}
             onBack={handleBack}
             onPlayEpisode={handlePlayEpisode}
             onToggleLibrary={handleToggleLibrary}
             onToggleWatchlist={handleToggleWatchlist}
+            onSeasonChange={(seasonNum) => setSelectedSeasonNumber(seasonNum)}
           />
         )}
 
@@ -166,8 +221,13 @@ export default function App() {
           <VideoPlayerScreen
             anime={selectedAnime}
             initialEpisode={selectedEpisode}
-            onBack={handleBack}
-            onSelectEpisode={(ep) => setSelectedEpisode(ep)}
+            onBack={handlePlayerBack}
+            onSelectEpisode={(ep) => {
+              setSelectedEpisode(ep);
+              if (ep.seasonNumber) {
+                setSelectedSeasonNumber(ep.seasonNumber);
+              }
+            }}
             onToast={showToast}
           />
         )}
@@ -201,7 +261,7 @@ export default function App() {
         )}
 
         {currentScreen === 'profile' && (
-          <ProfileScreen onToast={showToast} />
+          <ProfileScreen onToast={showToast} onRefreshData={() => loadAnimeData(true)} />
         )}
       </main>
 

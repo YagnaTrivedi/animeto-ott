@@ -1,11 +1,18 @@
 export interface Episode {
   id: string;
+  animeId: string;
   seasonNumber: number;
   episodeNumber: number;
   title: string;
-  duration: string;
-  synopsis: string;
+  description: string;
   thumbnail: string;
+  duration: string;
+  videoUrl: string;
+  subtitleUrl: string;
+  introStart: number;
+  introEnd: number;
+  // UI helpers & backward compatibility
+  synopsis?: string;
   progressPercent?: number;
   watched?: boolean;
 }
@@ -19,23 +26,38 @@ export interface Season {
 export interface Anime {
   id: string;
   title: string;
-  originalTitle?: string;
+  alternativeTitles: string[];
+  description: string;
+  poster: string;
+  banner: string;
+  logo: string;
   year: number;
-  format: 'TV' | 'Movie' | 'OVA';
-  seasonsCount: number;
-  totalEpisodes: number;
+  season: string;
+  status: 'Ongoing' | 'Completed' | 'Upcoming' | string;
   rating: number;
   genres: string[];
+  type: 'TV' | 'Movie' | 'OVA' | 'Special' | string;
+  studio: string;
+  totalEpisodes: number;
+  duration: string;
+  language: string;
+  ageRating: string;
+  featured: boolean;
+  trending: boolean;
+  popular: boolean;
+  newRelease: boolean;
+
+  // Backward-compatibility & UI conveniences
+  originalTitle?: string;
+  format?: 'TV' | 'Movie' | 'OVA' | string;
+  seasonsCount?: number;
   badge?: 'New Episode' | 'Sub/Dub' | 'Trending' | 'Featured' | 'New EP 1' | 'New EP 12' | string;
   badgeType?: 'primary' | 'secondary' | 'tertiary' | 'error';
   posterUrl: string;
   bannerUrl: string;
   synopsis: string;
-  featured?: boolean;
   trendingRank?: number;
   trendingCategory?: string;
-  newRelease?: boolean;
-  popular?: boolean;
   seasons: Season[];
 }
 
@@ -66,3 +88,4 @@ export interface PlayerState {
   isMuted: boolean;
   playbackSpeed: number;
 }
+

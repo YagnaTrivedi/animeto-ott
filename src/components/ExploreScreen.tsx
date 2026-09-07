@@ -48,21 +48,33 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
 
   const filteredAnime = useMemo(() => {
     return animeList.filter((anime) => {
-      // Search matching
+      // Search matching across title, alternative titles, description, studio, genres, and type
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesTitle = anime.title.toLowerCase().includes(q);
-        const matchesOriginal = anime.originalTitle?.toLowerCase().includes(q);
+        const matchesAlternative = anime.alternativeTitles?.some((t) => t.toLowerCase().includes(q)) ?? false;
+        const matchesOriginal = anime.originalTitle?.toLowerCase().includes(q) ?? false;
         const matchesGenre = anime.genres.some((g) => g.toLowerCase().includes(q));
-        const matchesSynopsis = anime.synopsis.toLowerCase().includes(q);
-        if (!matchesTitle && !matchesOriginal && !matchesGenre && !matchesSynopsis) {
+        const matchesSynopsis = (anime.description || anime.synopsis || '').toLowerCase().includes(q);
+        const matchesStudio = anime.studio?.toLowerCase().includes(q) ?? false;
+        const matchesType = anime.type?.toLowerCase().includes(q) ?? false;
+
+        if (
+          !matchesTitle &&
+          !matchesAlternative &&
+          !matchesOriginal &&
+          !matchesGenre &&
+          !matchesSynopsis &&
+          !matchesStudio &&
+          !matchesType
+        ) {
           return false;
         }
       }
 
-      // Tab filtering
+      // Tab filtering using centralized boolean and rank flags
       if (activeTab === 'Trending') {
-        if (!anime.trendingRank && anime.badge !== 'Trending') return false;
+        if (!anime.trending && !anime.trendingRank && anime.badge !== 'Trending') return false;
       } else if (activeTab === 'Popular') {
         if (!anime.popular && anime.rating < 8.8) return false;
       } else if (activeTab === 'New Releases') {
@@ -85,6 +97,11 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({
         } else {
           if (anime.year !== Number(selectedYear)) return false;
         }
+      }
+
+      // Season dropdown filter
+      if (selectedSeason !== 'All') {
+        if (!anime.season?.toLowerCase().includes(selectedSeason.toLowerCase())) return false;
       }
 
       return true;

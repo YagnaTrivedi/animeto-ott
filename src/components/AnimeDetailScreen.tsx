@@ -1,28 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Anime, Episode } from '../types';
 
 interface AnimeDetailScreenProps {
   anime: Anime;
+  initialSeasonNumber?: number;
   isInLibrary: boolean;
   isInWatchlist: boolean;
   onBack: () => void;
   onPlayEpisode: (anime: Anime, episodeIndex?: number, episode?: Episode) => void;
   onToggleLibrary: (animeId: string) => void;
   onToggleWatchlist: (animeId: string) => void;
+  onSeasonChange?: (seasonNumber: number) => void;
 }
 
 export const AnimeDetailScreen: React.FC<AnimeDetailScreenProps> = ({
   anime,
+  initialSeasonNumber,
   isInLibrary,
   isInWatchlist,
   onBack,
   onPlayEpisode,
   onToggleLibrary,
   onToggleWatchlist,
+  onSeasonChange,
 }) => {
-  const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(
-    anime.seasons[0]?.seasonNumber || 1
-  );
+  const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(() => {
+    if (initialSeasonNumber && anime.seasons.some((s) => s.seasonNumber === initialSeasonNumber)) {
+      return initialSeasonNumber;
+    }
+    return anime.seasons[0]?.seasonNumber || 1;
+  });
+
+  useEffect(() => {
+    if (initialSeasonNumber && anime.seasons.some((s) => s.seasonNumber === initialSeasonNumber)) {
+      setSelectedSeasonNumber(initialSeasonNumber);
+    }
+  }, [initialSeasonNumber, anime]);
+
+  const handleSelectSeason = (seasonNum: number) => {
+    setSelectedSeasonNumber(seasonNum);
+    onSeasonChange?.(seasonNum);
+  };
 
   const activeSeason =
     anime.seasons.find((s) => s.seasonNumber === selectedSeasonNumber) ||
@@ -167,20 +185,20 @@ export const AnimeDetailScreen: React.FC<AnimeDetailScreenProps> = ({
 
           <div className="space-y-3 pt-1 text-xs">
             <div className="flex justify-between py-1 border-b border-neutral-800">
-              <span className="text-neutral-400">Audio Tracks</span>
-              <span className="text-white font-medium">Japanese / English (Dual)</span>
+              <span className="text-neutral-400">Audio / Language</span>
+              <span className="text-white font-medium">{anime.language || 'Japanese / English (Dual)'}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-neutral-800">
-              <span className="text-neutral-400">Subtitles</span>
-              <span className="text-white font-medium">English, Spanish, German</span>
+              <span className="text-neutral-400">Status</span>
+              <span className="text-white font-medium">{anime.status || 'Ongoing'} ({anime.season || anime.year})</span>
             </div>
             <div className="flex justify-between py-1 border-b border-neutral-800">
-              <span className="text-neutral-400">Video Quality</span>
-              <span className="text-indigo-400 font-semibold">4K Ultra HD HDR</span>
+              <span className="text-neutral-400">Age Rating / Format</span>
+              <span className="text-indigo-400 font-semibold">{anime.ageRating || 'TV-14'} • {anime.type || 'TV'}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-neutral-800">
               <span className="text-neutral-400">Studio</span>
-              <span className="text-white font-medium">{anime.studio || 'MAPPA / Wit Studio'}</span>
+              <span className="text-white font-medium">{anime.studio || 'WIT Studio'}</span>
             </div>
             <div className="flex justify-between py-1">
               <span className="text-neutral-400">Rating</span>
@@ -201,7 +219,7 @@ export const AnimeDetailScreen: React.FC<AnimeDetailScreenProps> = ({
                 <button
                   key={season.seasonNumber}
                   id={`tab-season-${season.seasonNumber}`}
-                  onClick={() => setSelectedSeasonNumber(season.seasonNumber)}
+                  onClick={() => handleSelectSeason(season.seasonNumber)}
                   className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                     isSelected
                       ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(99,102,241,0.35)]'

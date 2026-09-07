@@ -1,14 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { isSupabaseConfigured, getSupabaseConfigState, testSupabaseConnection, SupabaseHealthCheckResult } from '../lib/supabase';
+import { seedPlaceholderDataToSupabase } from '../services/animeService';
 
 interface ProfileScreenProps {
   onToast: (msg: string) => void;
+  onRefreshData?: () => void;
 }
 
-export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onToast }) => {
+export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onToast, onRefreshData }) => {
   const [autoPlay, setAutoPlay] = useState(true);
   const [skipIntro, setSkipIntro] = useState(true);
   const [streamQuality, setStreamQuality] = useState('1080p');
   const [audioPref, setAudioPref] = useState<'sub' | 'dub'>('sub');
+  
+  const [dbState, setDbState] = useState(getSupabaseConfigState());
+  const [healthCheck, setHealthCheck] = useState<SupabaseHealthCheckResult | null>(null);
+  const [isTesting, setIsTesting] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
+
+  useEffect(() => {
+    if (dbState.isConfigured) {
+      testConnection();
+    }
+  }, [dbState.isConfigured]);
+
+  const testConnection = async () => {
+    setIsTesting(true);
+    const res = await testSupabaseConnection();
+    setHealthCheck(res);
+    setIsTesting(false);
+    if (res.ok) {
+      onToast(res.message);
+    } else {
+      onToast(`Database notice: ${res.message}`);
+    }
+  };
+
+  const handleSeedData = async () => {
+    setIsSeeding(true);
+    const res = await seedPlaceholderDataToSupabase();
+    setIsSeeding(false);
+    onToast(res.message);
+    if (res.success) {
+      testConnection();
+      if (onRefreshData) {
+        onRefreshData();
+      }
+    }
+  };
 
   return (
     <div id="profile-screen-container" className="min-h-screen pb-28 text-white max-w-6xl mx-auto px-4 space-y-6">
@@ -177,6 +216,102 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onToast }) => {
               />
             </button>
           </div>
+        </div>
+      </section>
+
+      {/* Supabase Backend Database Bento Tile */}
+      <section className="bento-card p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400">Cloud Persistence</span>
+            <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+              Supabase Database Backend
+              <span
+                className={`size-2.5 rounded-full inline-block ${
+                  dbState.isConfigured ? (healthCheck?.ok ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400') : 'bg-neutral-500'
+                }`}
+              />
+            </h3>
+          </div>
+          <button
+            onClick={testConnection}
+            disabled={isTesting}
+            className="px-3 py-1.5 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-xs font-bold text-neutral-200 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
+          >
+            <span className={`material-symbols-outlined text-sm ${isTesting ? 'animate-spin' : ''}`}>sync</span>
+            {isTesting ? 'Testing...' : 'Test Connection'}
+          </button>
+        </div>
+
+        <div className="bg-neutral-900/60 border border-neutral-800/80 rounded-2xl p-4 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1 border-b border-neutral-800/60 pb-2.5">
+            <span className="text-neutral-400">Connection Status</span>
+            <span className="font-semibold text-white flex items-center gap-1.5">
+              {dbState.isConfigured ? (
+                <span className="text-emerald-400 flex items-center gap-1">
+                  <span className="size-2 rounded-full bg-emerald-400"></span>
+                  Configured ({dbState.maskedUrl})
+                </span>
+              ) : (
+                <span className="text-amber-400 flex items-center gap-1">
+                  <span className="size-2 rounded-full bg-amber-400"></span>
+                  Local Fallback Mode (Missing VITE_SUPABASE_URL)
+                </span>
+              )}
+            </span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1 border-b border-neutral-800/60 pb-2.5">
+            <span className="text-neutral-400">Database Tables</span>
+            <span className="font-medium text-neutral-300">
+              <code className="text-indigo-300 bg-neutral-950 px-1.5 py-0.5 rounded">anime</code> &amp;{' '}
+              <code className="text-indigo-300 bg-neutral-950 px-1.5 py-0.5 rounded">episodes</code>
+            </span>
+          </div>
+
+          {healthCheck && (
+            <div className="text-xs rounded-xl p-3 bg-neutral-950/80 border border-neutral-800 space-y-1">
+              <p className={`font-semibold ${healthCheck.ok ? 'text-emerald-300' : 'text-amber-300'}`}>
+                {healthCheck.message}
+              </p>
+              {healthCheck.animeCount !== undefined && (
+                <p className="text-neutral-400">
+                  Total Anime in DB: <span className="text-white font-bold">{healthCheck.animeCount}</span> • Episodes in DB:{' '}
+                  <span className="text-white font-bold">{healthCheck.episodesCount ?? 0}</span>
+                </p>
+              )}
+            </div>
+          )}
+
+          {!dbState.isConfigured && (
+            <div className="text-xs text-neutral-400 bg-neutral-950/60 p-3 rounded-xl border border-neutral-800/60 space-y-1">
+              <p className="text-amber-300 font-semibold">How to connect your live Supabase project:</p>
+              <p>
+                1. Set <code className="text-indigo-300">VITE_SUPABASE_URL</code> to your project URL.
+              </p>
+              <p>
+                2. Set <code className="text-indigo-300">VITE_SUPABASE_ANON_KEY</code> to your public/anon API key.
+              </p>
+              <p className="text-neutral-400 text-[11px] pt-1">
+                The application runs seamlessly with offline fallback data whenever environment variables are unset.
+              </p>
+            </div>
+          )}
+
+          {dbState.isConfigured && (
+            <div className="pt-2 flex items-center justify-between gap-3">
+              <p className="text-[11px] text-neutral-400">
+                Populate empty database tables with initial high-fidelity anime & episode catalogue
+              </p>
+              <button
+                onClick={handleSeedData}
+                disabled={isSeeding}
+                className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-xs font-bold text-white transition-all cursor-pointer shrink-0 disabled:opacity-50"
+              >
+                {isSeeding ? 'Seeding Tables...' : 'Seed Catalog to Supabase'}
+              </button>
+            </div>
+          )}
         </div>
       </section>
 

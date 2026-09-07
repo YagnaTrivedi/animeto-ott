@@ -4,7 +4,7 @@ import { Anime, Episode } from '../types';
 interface VideoPlayerScreenProps {
   anime: Anime;
   initialEpisode?: Episode;
-  onBack: () => void;
+  onBack: (seasonNumber?: number) => void;
   onSelectEpisode: (episode: Episode) => void;
   onToast: (msg: string) => void;
 }
@@ -78,8 +78,11 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
   };
 
   const handleSkipIntro = () => {
-    setCurrentTime((prev) => Math.min(prev + 90, duration));
-    onToast('Skipped 90s intro');
+    const target = currentEpisode.introEnd && currentEpisode.introEnd > currentTime
+      ? currentEpisode.introEnd
+      : Math.min(currentTime + 90, duration);
+    setCurrentTime(target);
+    onToast(`Skipped to ${formatTime(target)}`);
   };
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -107,17 +110,21 @@ export const VideoPlayerScreen: React.FC<VideoPlayerScreenProps> = ({
       {/* Bento Top Stage Tile */}
       <section className="bento-card overflow-hidden p-0 border border-neutral-800 relative group shadow-2xl">
         {/* Floating Top Bar */}
-        <div className="absolute top-0 left-0 z-30 p-4 w-full bg-gradient-to-b from-neutral-950/90 via-neutral-950/40 to-transparent flex justify-between items-center pointer-events-none">
+        <div className="absolute top-0 left-0 z-50 p-4 w-full bg-gradient-to-b from-neutral-950/90 via-neutral-950/40 to-transparent flex justify-between items-center pointer-events-none">
           <button
             id="btn-player-back"
-            onClick={onBack}
-            className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-900/80 backdrop-blur-md border border-neutral-700/60 text-white text-xs font-semibold hover:bg-neutral-800 cursor-pointer shadow-lg active:scale-95"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onBack(currentEpisode.seasonNumber);
+            }}
+            className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-900/80 backdrop-blur-md border border-neutral-700/60 text-white text-xs font-semibold hover:bg-neutral-800 cursor-pointer shadow-lg active:scale-95 z-50"
           >
             <span className="material-symbols-outlined text-[18px]">arrow_back</span>
             Back
           </button>
 
-          <span className="text-xs font-semibold text-white/90 drop-shadow truncate max-w-xs px-2">
+          <span className="text-xs font-semibold text-white/90 drop-shadow truncate max-w-xs px-2 pointer-events-auto">
             {anime.title} • S{currentEpisode.seasonNumber} E{currentEpisode.episodeNumber}
           </span>
         </div>
